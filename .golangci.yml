@@ -17,7 +17,7 @@ linters-settings:
   gocyclo:
     min-complexity: 16
   goimports:
-    local-prefixes: github.com/sentinel-official/cli-client
+    local-prefixes: github.com/sentinel-official/sentinel-dvpncli
 
 linters:
   disable-all: true
