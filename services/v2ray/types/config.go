@@ -65,7 +65,11 @@ var (
                 ]
             },
             "streamSettings": {
-                "network": "{{ .VMess.Transport }}"
+                "network": "{{ .VMess.Transport }}",
+                "security": "{{ .VMess.Security }}",
+                "tlsSettings": {
+                    "allowInsecure": true
+                }
             },
             "tag": "vmess"
         }
@@ -122,6 +126,7 @@ type VMessConfig struct {
 	Address   string `json:"-"`
 	ID        string `json:"-"`
 	Port      uint16 `json:"-"`
+	Security  string `json:"-"`
 	Transport string `json:"-"`
 }
 

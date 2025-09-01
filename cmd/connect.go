@@ -375,13 +375,21 @@ func ConnectCmd() *cobra.Command {
 
 				service = wireguard.NewWireGuard(cfg)
 			} else if nodeType == 2 {
-				if len(result) != 7 {
+				if len(result) != 8 {
 					return fmt.Errorf("incorrect result size %d", len(result))
 				}
 
 				var (
-					vMessAddress   = net.IP(result[0:4])
-					vMessPort      = binary.BigEndian.Uint16(result[4:6])
+					vMessAddress  = net.IP(result[0:4])
+					vMessPort     = binary.BigEndian.Uint16(result[4:6])
+					vMessSecurity = func() string {
+						switch result[7] {
+						case 0x01:
+							return "tls"
+						default:
+							return ""
+						}
+					}()
 					vMessTransport = func() string {
 						switch result[6] {
 						case 0x01:
@@ -427,6 +435,7 @@ func ConnectCmd() *cobra.Command {
 						Address:   vMessAddress.String(),
 						ID:        uidStr,
 						Port:      vMessPort,
+						Security:  vMessSecurity,
 						Transport: vMessTransport,
 					},
 				}
