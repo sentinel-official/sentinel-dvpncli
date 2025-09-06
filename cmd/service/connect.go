@@ -1,12 +1,15 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
+	"github.com/sentinel-official/sentinel-go-sdk/app"
 	"github.com/sentinel-official/sentinel-go-sdk/config"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
+	"github.com/sentinel-official/sentinel-go-sdk/process"
 	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
@@ -32,6 +35,9 @@ fetches node info to determine the service type, builds the appropriate client, 
 up. It listens for SIGINT/SIGTERM and gracefully shuts the client down by running pre-down,
 down, and post-down tasks.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(cmd.Context())
+			defer cancel()
+
 			homeDir := viper.GetString("home")
 
 			id, err := strconv.ParseUint(args[0], 10, 64)
@@ -44,7 +50,7 @@ down, and post-down tasks.`,
 				return fmt.Errorf("creating client from config: %w", err)
 			}
 
-			session, err := client.Session(cmd.Context(), id)
+			session, err := client.Session(ctx, id)
 			if err != nil {
 				return fmt.Errorf("querying session %d: %w", id, err)
 			}
@@ -60,7 +66,7 @@ down, and post-down tasks.`,
 				return fmt.Errorf("parsing Bech32 node addr %q: %w", session.GetNodeAddress(), err)
 			}
 
-			n, err := client.Node(cmd.Context(), addr)
+			n, err := client.Node(ctx, addr)
 			if err != nil {
 				return fmt.Errorf("querying node %q: %w", addr.String(), err)
 			}
@@ -74,7 +80,7 @@ down, and post-down tasks.`,
 			client.WithAddr(addr)
 			client.WithInsecure(true)
 
-			info, err := client.GetInfo(cmd.Context())
+			info, err := client.GetInfo(ctx)
 			if err != nil {
 				return fmt.Errorf("fetching node %q info: %w", addr.String(), err)
 			}
@@ -91,60 +97,85 @@ down, and post-down tasks.`,
 				WireGuardCfg: wireguardCfg,
 			}
 
-			service, err := builder.Build(cmd.Context())
+			service, err := builder.Build(ctx)
 			if err != nil {
 				return fmt.Errorf("building service %q: %w", info.GetServiceType(), err)
 			}
 
+			manager := process.NewManager(ctx, "manager")
+
+			setupFunc := func() error {
+				return manager.Setup(func(ctx context.Context) error {
+					log.Info("Setting up service")
+					if err := service.Setup(); err != nil {
+						return fmt.Errorf("setting up service: %w", err)
+					}
+
+					return nil
+				})
+			}
+
+			startFunc := func() error {
+				return manager.Start(func(ctx context.Context) error {
+					log.Info("Starting service")
+					if err := service.Start(); err != nil {
+						return fmt.Errorf("starting service: %w", err)
+					}
+
+					manager.Go(func(ctx context.Context) error {
+						if err := service.Wait(); err != nil {
+							return fmt.Errorf("waiting service: %w", err)
+						}
+
+						return nil
+					})
+
+					return nil
+				})
+			}
+
+			waitFunc := func() error {
+				return manager.Wait(nil)
+			}
+
+			stopFunc := func() error {
+				return manager.Stop(func() error {
+					log.Info("Stopping service")
+					if err := service.Stop(); err != nil {
+						return app.NewErrShutdown(err)
+					}
+
+					return nil
+				})
+			}
+
+			if err := setupFunc(); err != nil {
+				return fmt.Errorf("setting up: %w", err)
+			}
+
 			// Create an errgroup with the signal-aware context.
-			eg, ctx := errgroup.WithContext(cmd.Context())
+			eg, ctx := errgroup.WithContext(ctx)
 
 			eg.Go(func() error {
-				<-ctx.Done()
-
-				log.Info("Running service pre-down task")
-				if err := service.PreDown(); err != nil {
-					return fmt.Errorf("running service pre-down task: %w", err)
+				if err := startFunc(); err != nil {
+					return fmt.Errorf("starting: %w", err)
 				}
 
-				log.Info("Running service down task")
-				if err := service.Down(); err != nil {
-					return fmt.Errorf("running service down task: %w", err)
-				}
-
-				log.Info("Running service post-down task")
-				if err := service.PostDown(); err != nil {
-					return fmt.Errorf("running service post-down task: %w", err)
+				log.Info("Client started successfully")
+				if err := waitFunc(); err != nil {
+					return fmt.Errorf("waiting: %w", err)
 				}
 
 				return nil
 			})
 
 			eg.Go(func() error {
-				log.Info("Running service pre-up task")
-				if err := service.PreUp(); err != nil {
-					return fmt.Errorf("running service pre-up task: %w", err)
+				<-ctx.Done()
+				if err := stopFunc(); err != nil {
+					return app.NewErrShutdown(fmt.Errorf("stopping: %w", err))
 				}
 
-				log.Info("Running service up task")
-				if err := service.Up(); err != nil {
-					return fmt.Errorf("running service up task: %w", err)
-				}
-
-				log.Info("Running service post-up task")
-				if err := service.PostUp(); err != nil {
-					return fmt.Errorf("running service post-up task: %w", err)
-				}
-
-				log.Info("Client started successfully")
-				eg.Go(func() error {
-					if err := service.Wait(); err != nil {
-						return fmt.Errorf("waiting service: %w", err)
-					}
-
-					return nil
-				})
-
+				log.Info("Client stopped successfully")
 				return nil
 			})
 
@@ -152,7 +183,6 @@ down, and post-down tasks.`,
 				return err
 			}
 
-			log.Info("Client stopped successfully")
 			return nil
 		},
 	}

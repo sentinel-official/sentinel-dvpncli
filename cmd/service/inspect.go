@@ -3,9 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"github.com/sentinel-official/sentinel-go-sdk/app"
@@ -13,6 +11,7 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
+	"github.com/sentinel-official/sentinel-go-sdk/process"
 	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/utils"
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
@@ -23,25 +22,6 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
-
-// writeLocation retrieves the GeoIP location and writes it to the provided writer in JSON format.
-func writeLocation(ctx context.Context, w io.Writer) error {
-	// Create a new GeoIP client
-	client := geoip.NewDefaultClient()
-
-	// Lookup the node's location
-	location, err := client.Get(ctx, "")
-	if err != nil {
-		return fmt.Errorf("getting GeoIP location: %w", err)
-	}
-
-	// Write the location to stdout in JSON format
-	if err := utils.Writeln(w, location, "json"); err != nil {
-		return fmt.Errorf("writing GeoIP location: %w", err)
-	}
-
-	return nil
-}
 
 // NewInspectCmd returns a new command for inspecting a Sentinel node's status,
 // connectivity, and location information.
@@ -146,33 +126,28 @@ helps users determine whether a node meets their requirements before initiating 
 				return fmt.Errorf("building service %q: %w", info.GetServiceType(), err)
 			}
 
-			jobCtx, jobCancel := context.WithCancel(context.Background())
-			defer jobCancel()
-
-			jobGroup, jobCtx := errgroup.WithContext(jobCtx)
-
 			inspectionDone := make(chan struct{})
+			manager := process.NewManager(ctx, "manager")
+
+			setupFunc := func() error {
+				return manager.Setup(func(ctx context.Context) error {
+					log.Info("Setting up service")
+					if err := service.Setup(); err != nil {
+						return fmt.Errorf("setting up service: %w", err)
+					}
+
+					return nil
+				})
+			}
 
 			startFunc := func() error {
-				sg := &errgroup.Group{}
-
-				sg.Go(func() error {
-					log.Info("Running service pre-up task")
-					if err := service.PreUp(); err != nil {
-						return fmt.Errorf("running service pre-up task: %w", err)
+				return manager.Start(func(ctx context.Context) error {
+					log.Info("Starting service")
+					if err := service.Start(); err != nil {
+						return fmt.Errorf("starting service: %w", err)
 					}
 
-					log.Info("Running service up task")
-					if err := service.Up(); err != nil {
-						return fmt.Errorf("running service up task: %w", err)
-					}
-
-					log.Info("Running service post-up task")
-					if err := service.PostUp(); err != nil {
-						return fmt.Errorf("running service post-up task: %w", err)
-					}
-
-					jobGroup.Go(func() error {
+					manager.Go(func(ctx context.Context) error {
 						if err := service.Wait(); err != nil {
 							return fmt.Errorf("waiting service: %w", err)
 						}
@@ -180,158 +155,112 @@ helps users determine whether a node meets their requirements before initiating 
 						return nil
 					})
 
-					return nil
-				})
+					manager.Go(func(ctx context.Context) error {
+						defer close(inspectionDone)
 
-				jobGroup.Go(func() error {
-					defer close(inspectionDone)
+						ticker := time.NewTicker(1 * time.Second)
+						defer ticker.Stop()
 
-					ticker := time.NewTicker(1 * time.Second)
-					defer ticker.Stop()
-
-					for {
-						select {
-						case <-jobCtx.Done():
-							return jobCtx.Err()
-						case <-ticker.C:
-							up, err := service.IsUp()
-							if err != nil {
-								return fmt.Errorf("checking service status: %w", err)
-							}
-							if !up {
-								continue
-							}
-
-							// Set the proxy address to use for geolocation lookup
-							if service.Type() == sentinelsdk.ServiceTypeV2Ray {
-								proxyAddr := fmt.Sprintf("socks5://127.0.0.1:%d", v2rayCfg.Proxy.Port)
-								m := map[string]string{
-									"HTTP_PROXY":  proxyAddr,
-									"HTTPS_PROXY": proxyAddr,
+						for {
+							select {
+							case <-ctx.Done():
+								return ctx.Err()
+							case <-ticker.C:
+								ok, err := service.IsRunning()
+								if err != nil {
+									return fmt.Errorf("checking service status: %w", err)
+								}
+								if !ok {
+									continue
 								}
 
-								for key, value := range m {
-									if err := os.Setenv(key, value); err != nil {
-										return fmt.Errorf("setting environment variable %q: %w", key, err)
+								// Set the proxy address to use for geolocation lookup
+								if service.Type() == sentinelsdk.ServiceTypeV2Ray {
+									proxyAddr := fmt.Sprintf("socks5://127.0.0.1:%d", v2rayCfg.Proxy.Port)
+									m := map[string]string{
+										"HTTP_PROXY":  proxyAddr,
+										"HTTPS_PROXY": proxyAddr,
+									}
+
+									for key, value := range m {
+										if err := os.Setenv(key, value); err != nil {
+											return fmt.Errorf("setting environment variable %q: %w", key, err)
+										}
 									}
 								}
-							}
 
-							// Write GeoIP location to CLI Stdout
-							if err := writeLocation(jobCtx, cmd.OutOrStdout()); err != nil {
-								return err
-							}
+								// Create a new GeoIP client
+								gc := geoip.NewDefaultClient()
 
-							return nil
+								// Lookup the node's location
+								location, err := gc.Get(ctx, "")
+								if err != nil {
+									return fmt.Errorf("getting GeoIP location: %w", err)
+								}
+
+								// Write the location to stdout in JSON format
+								if err := utils.Writeln(cmd.OutOrStdout(), location, "json"); err != nil {
+									return fmt.Errorf("writing GeoIP location: %w", err)
+								}
+
+								return nil
+							}
 						}
-					}
-				})
-
-				if err := sg.Wait(); err != nil {
-					return err
-				}
-
-				return nil
-			}
-
-			stopFunc := func() error {
-				sg := &errgroup.Group{}
-
-				sg.Go(func() error {
-					jobCancel()
-					return nil
-				})
-
-				sg.Go(func() error {
-					log.Info("Running service pre-down task")
-					if err := service.PreDown(); err != nil {
-						return fmt.Errorf("running service pre-down task: %w", err)
-					}
-
-					log.Info("Running service down task")
-					if err := service.Down(); err != nil {
-						return fmt.Errorf("running service down task: %w", err)
-					}
-
-					log.Info("Running service post-down task")
-					if err := service.PostDown(); err != nil {
-						return fmt.Errorf("running service post-down task: %w", err)
-					}
+					})
 
 					return nil
 				})
-
-				if err := sg.Wait(); err != nil {
-					return err
-				}
-
-				return nil
 			}
 
 			waitFunc := func() error {
-				if err := jobGroup.Wait(); err != nil {
-					log.Debug("jobGroup.Wait()",
-						"err:", err,
-						"ctx.Err():", jobCtx.Err(),
-						"context.Cause(ctx):", context.Cause(jobCtx),
-					)
-
-					return err
-				}
-
-				return nil
+				return manager.Wait(nil)
 			}
 
-			eg, egCtx := errgroup.WithContext(ctx)
-			running := atomic.Bool{}
-
-			eg.Go(func() error {
-				log.Info("Starting client")
-				if err := startFunc(); err != nil {
-					return fmt.Errorf("starting client: %w", err)
-				}
-
-				running.Store(true)
-				log.Info("Client started successfully")
-
-				eg.Go(func() error {
-					if err := waitFunc(); err != nil {
-						return fmt.Errorf("waiting client: %w", err)
+			stopFunc := func() error {
+				return manager.Stop(func() error {
+					log.Info("Stopping service")
+					if err := service.Stop(); err != nil {
+						return fmt.Errorf("stopping service: %w", err)
 					}
 
 					return nil
 				})
+			}
+
+			if err := setupFunc(); err != nil {
+				return fmt.Errorf("setting up: %w", err)
+			}
+
+			eg, ctx := errgroup.WithContext(ctx)
+
+			eg.Go(func() error {
+				if err := startFunc(); err != nil {
+					return fmt.Errorf("starting: %w", err)
+				}
+
+				log.Info("Inspection started successfully")
+				if err := waitFunc(); err != nil {
+					return fmt.Errorf("waiting: %w", err)
+				}
 
 				return nil
 			})
 
 			eg.Go(func() error {
 				select {
-				case <-egCtx.Done():
-					if !running.Load() {
-						return egCtx.Err()
-					}
+				case <-ctx.Done():
 				case <-inspectionDone:
 				}
 
-				log.Info("Stopping client")
 				if err := stopFunc(); err != nil {
-					return app.NewShutdownError(fmt.Errorf("stopping client: %w", err))
+					return app.NewErrShutdown(fmt.Errorf("stopping: %w", err))
 				}
 
-				running.Store(false)
-				log.Info("Client stopped successfully")
-
+				log.Info("Inspection stopped successfully")
 				return nil
 			})
 
 			if err := eg.Wait(); err != nil {
-				log.Debug("eg.Wait()",
-					"err:", err,
-					"ctx.Err():", egCtx.Err(),
-					"context.Cause(ctx):", context.Cause(egCtx),
-				)
-
 				return err
 			}
 

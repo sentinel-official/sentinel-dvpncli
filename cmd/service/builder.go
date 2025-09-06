@@ -66,7 +66,7 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 		}
 
 		// Create V2Ray client and run PreUp.
-		service := v2ray.NewClient(b.HomeDir, b.V2RayCfg)
+		service := v2ray.NewClient(ctx, "v2ray", b.HomeDir, b.V2RayCfg)
 		if err := service.Init(true); err != nil {
 			return nil, fmt.Errorf("running service init task: %w", err)
 		}
@@ -97,7 +97,7 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 		b.WireGuardCfg.Peer.PublicKey = addResp.Metadata[0].PublicKey.String()
 
 		// Create WireGuard client and run PreUp.
-		service := wireguard.NewClient(b.HomeDir, b.WireGuardCfg)
+		service := wireguard.NewClient(ctx, "wireguard", b.HomeDir, b.WireGuardCfg)
 		if err := service.Init(true); err != nil {
 			return nil, fmt.Errorf("running service init task: %w", err)
 		}
