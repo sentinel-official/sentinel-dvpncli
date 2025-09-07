@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/sentinel-official/sentinel-go-sdk/cmd"
-	"github.com/sentinel-official/sentinel-go-sdk/config"
+	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

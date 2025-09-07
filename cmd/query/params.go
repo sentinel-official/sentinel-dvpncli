@@ -3,8 +3,8 @@ package query
 import (
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/config"
 	"github.com/sentinel-official/sentinel-go-sdk/core"
+	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/safe"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"

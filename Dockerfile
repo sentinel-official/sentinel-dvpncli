@@ -1,19 +1,30 @@
-# Build Stage
+# Build stage
 FROM golang:1.25-alpine3.22 AS build
 
-# Copy the files
-COPY . /root/
+# Set working directory
+WORKDIR /root
 
-# Install dependencies and build in one step, also leverage build cache
+# Install build dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    git make
+
+# Cache Go modules
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+# Copy source into the working directory
+COPY . .
+
+# Build sentinel-dvpncli
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    apk add --no-cache git make && \
-    cd /root/ && make --jobs=$(nproc) install
+    make --jobs=$(nproc) install
 
-# Final Stage
+# Runtime stage
 FROM alpine:3.22
 
-# Install necessary packages in a single layer
+# Install runtime dependencies
 RUN apk add --no-cache \
     iptables \
     openvpn \
@@ -21,8 +32,7 @@ RUN apk add --no-cache \
     wireguard-tools && \
     rm -rf /etc/v2ray/ /usr/share/v2ray/
 
-# Copy the built binary from the build stage
+# Copy the built binaries from build stage
 COPY --from=build /go/bin/sentinel-dvpncli /usr/local/bin/dvpncli
 
-# Set the entrypoint for the container
 ENTRYPOINT ["dvpncli"]

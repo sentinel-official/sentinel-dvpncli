@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/sentinel-official/sentinel-go-sdk/app"
-	"github.com/sentinel-official/sentinel-go-sdk/config"
+	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
 	"github.com/sentinel-official/sentinel-go-sdk/process"

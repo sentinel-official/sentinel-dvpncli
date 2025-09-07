@@ -6,7 +6,7 @@ import (
 
 	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/config"
+	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"github.com/sentinel-official/sentinelhub/v12/x/subscription/types/v3"
 	"github.com/spf13/cobra"
