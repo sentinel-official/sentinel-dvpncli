@@ -14,6 +14,7 @@ import (
 // Handler defines all components of a transaction command.
 type Handler struct {
 	cobra.Command
+
 	RunE func(cmd *cobra.Command, args []string, fromAddr types.AccAddress) (types.Msg, error)
 }
 

@@ -183,7 +183,7 @@ down, and post-down tasks.`,
 			})
 
 			if err := eg.Wait(); err != nil {
-				return err
+				return fmt.Errorf("waiting group: %w", err)
 			}
 
 			return nil

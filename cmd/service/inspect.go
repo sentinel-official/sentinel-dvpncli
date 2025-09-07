@@ -25,7 +25,7 @@ import (
 
 // NewInspectCmd returns a new command for inspecting a Sentinel node's status,
 // connectivity, and location information.
-func NewInspectCmd(cfg *config.Config) *cobra.Command {
+func NewInspectCmd(cfg *config.Config) *cobra.Command { //nolint:gocyclo,maintidx
 	// Default v2ray and wireguard client configurations
 	v2rayCfg := v2ray.DefaultClientConfig()
 	wireguardCfg := wireguard.DefaultClientConfig()
@@ -266,7 +266,7 @@ helps users determine whether a node meets their requirements before initiating 
 			})
 
 			if err := eg.Wait(); err != nil {
-				return err
+				return fmt.Errorf("waiting group: %w", err)
 			}
 
 			return nil

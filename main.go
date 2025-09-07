@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/sentinel-official/sentinel-go-sdk/app"
@@ -9,6 +10,6 @@ import (
 )
 
 func main() {
-	exitCode := app.Run(cmd.NewRootCmd)
+	exitCode := app.Run(context.Background(), cmd.NewRootCmd)
 	os.Exit(exitCode)
 }
