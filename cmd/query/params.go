@@ -27,6 +27,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 				}
 
 				m.Set("lease", res)
+
 				return nil
 			})
 
@@ -37,6 +38,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 				}
 
 				m.Set("node", res)
+
 				return nil
 			})
 
@@ -47,6 +49,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 				}
 
 				m.Set("provider", res)
+
 				return nil
 			})
 
@@ -57,6 +60,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 				}
 
 				m.Set("session", res)
+
 				return nil
 			})
 
@@ -67,6 +71,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 				}
 
 				m.Set("subscription", res)
+
 				return nil
 			})
 
@@ -77,6 +82,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 			items := make(map[string]interface{})
 			m.RangeGet(func(k string, v interface{}) bool {
 				items[k] = v
+
 				return false
 			})
 

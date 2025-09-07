@@ -102,12 +102,12 @@ down, and post-down tasks.`,
 				return fmt.Errorf("building service %q: %w", info.GetServiceType(), err)
 			}
 
-			manager := process.NewManager(ctx, "manager")
+			manager := process.NewManager("manager")
 
-			setupFunc := func() error {
-				return manager.Setup(func(ctx context.Context) error {
+			setupFunc := func(ctx context.Context) error {
+				return manager.Setup(ctx, func() error {
 					log.Info("Setting up service")
-					if err := service.Setup(); err != nil {
+					if err := service.Setup(ctx); err != nil {
 						return fmt.Errorf("setting up service: %w", err)
 					}
 
@@ -115,15 +115,16 @@ down, and post-down tasks.`,
 				})
 			}
 
-			startFunc := func() error {
-				return manager.Start(func(ctx context.Context) error {
+			startFunc := func(parent context.Context) (context.Context, error) {
+				return manager.Start(parent, func(ctx context.Context) error {
 					log.Info("Starting service")
-					if err := service.Start(); err != nil {
+					serviceCtx, err := service.Start(ctx)
+					if err != nil {
 						return fmt.Errorf("starting service: %w", err)
 					}
 
-					manager.Go(func(ctx context.Context) error {
-						if err := service.Wait(); err != nil {
+					manager.Go(ctx, func() error {
+						if err := service.Wait(serviceCtx); err != nil {
 							return fmt.Errorf("waiting service: %w", err)
 						}
 
@@ -134,8 +135,8 @@ down, and post-down tasks.`,
 				})
 			}
 
-			waitFunc := func() error {
-				return manager.Wait(nil)
+			waitFunc := func(ctx context.Context) error {
+				return manager.Wait(ctx, nil)
 			}
 
 			stopFunc := func() error {
@@ -149,7 +150,7 @@ down, and post-down tasks.`,
 				})
 			}
 
-			if err := setupFunc(); err != nil {
+			if err := setupFunc(ctx); err != nil {
 				return fmt.Errorf("setting up: %w", err)
 			}
 
@@ -157,12 +158,13 @@ down, and post-down tasks.`,
 			eg, ctx := errgroup.WithContext(ctx)
 
 			eg.Go(func() error {
-				if err := startFunc(); err != nil {
+				ctx, err := startFunc(ctx)
+				if err != nil {
 					return fmt.Errorf("starting: %w", err)
 				}
 
 				log.Info("Client started successfully")
-				if err := waitFunc(); err != nil {
+				if err := waitFunc(ctx); err != nil {
 					return fmt.Errorf("waiting: %w", err)
 				}
 
@@ -176,6 +178,7 @@ down, and post-down tasks.`,
 				}
 
 				log.Info("Client stopped successfully")
+
 				return nil
 			})
 

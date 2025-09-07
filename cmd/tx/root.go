@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// NewRootCmd initializes and returns the root query command
+// NewRootCmd initializes and returns the root query command.
 func NewRootCmd(cfg *config.Config) *cobra.Command {
 	outputFormat := "text"
 

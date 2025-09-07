@@ -41,13 +41,15 @@ func txSessionCancelCmd(cfg *config.Config) *cobra.Command {
 }
 
 func txSessionStartCmd(cfg *config.Config) *cobra.Command {
-	var denom string
-	var gigabytes int64
-	var hours int64
-	var maxPriceStr string
-	var planID uint64
-	var renewalPricePolicyStr string
-	var subscriptionID uint64
+	var (
+		denom                 string
+		gigabytes             int64
+		hours                 int64
+		maxPriceStr           string
+		planID                uint64
+		renewalPricePolicyStr string
+		subscriptionID        uint64
+	)
 
 	h := &Handler{
 		Command: cobra.Command{

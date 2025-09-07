@@ -11,13 +11,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Handler defines all components of a transaction command
+// Handler defines all components of a transaction command.
 type Handler struct {
 	cobra.Command
 	RunE func(cmd *cobra.Command, args []string, fromAddr types.AccAddress) (types.Msg, error)
 }
 
-// NewCommand builds a Cobra command from a Handler
+// NewCommand builds a Cobra command from a Handler.
 func NewCommand(cfg *config.Config, h *Handler) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   h.Use,

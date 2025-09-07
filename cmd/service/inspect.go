@@ -31,8 +31,10 @@ func NewInspectCmd(cfg *config.Config) *cobra.Command {
 	wireguardCfg := wireguard.DefaultClientConfig()
 
 	// Define variables for other flags
-	var maxPriceStr string
-	var timeout = 30 * time.Second
+	var (
+		maxPriceStr string
+		timeout     = 30 * time.Second
+	)
 
 	// Define the inspect command
 	cmd := &cobra.Command{
@@ -127,12 +129,12 @@ helps users determine whether a node meets their requirements before initiating 
 			}
 
 			inspectionDone := make(chan struct{})
-			manager := process.NewManager(ctx, "manager")
+			manager := process.NewManager("manager")
 
-			setupFunc := func() error {
-				return manager.Setup(func(ctx context.Context) error {
+			setupFunc := func(ctx context.Context) error {
+				return manager.Setup(ctx, func() error {
 					log.Info("Setting up service")
-					if err := service.Setup(); err != nil {
+					if err := service.Setup(ctx); err != nil {
 						return fmt.Errorf("setting up service: %w", err)
 					}
 
@@ -140,22 +142,23 @@ helps users determine whether a node meets their requirements before initiating 
 				})
 			}
 
-			startFunc := func() error {
-				return manager.Start(func(ctx context.Context) error {
+			startFunc := func(parent context.Context) (context.Context, error) {
+				return manager.Start(parent, func(ctx context.Context) error {
 					log.Info("Starting service")
-					if err := service.Start(); err != nil {
+					serviceCtx, err := service.Start(ctx)
+					if err != nil {
 						return fmt.Errorf("starting service: %w", err)
 					}
 
-					manager.Go(func(ctx context.Context) error {
-						if err := service.Wait(); err != nil {
+					manager.Go(ctx, func() error {
+						if err := service.Wait(serviceCtx); err != nil {
 							return fmt.Errorf("waiting service: %w", err)
 						}
 
 						return nil
 					})
 
-					manager.Go(func(ctx context.Context) error {
+					manager.Go(ctx, func() error {
 						defer close(inspectionDone)
 
 						ticker := time.NewTicker(1 * time.Second)
@@ -212,8 +215,8 @@ helps users determine whether a node meets their requirements before initiating 
 				})
 			}
 
-			waitFunc := func() error {
-				return manager.Wait(nil)
+			waitFunc := func(ctx context.Context) error {
+				return manager.Wait(ctx, nil)
 			}
 
 			stopFunc := func() error {
@@ -227,19 +230,20 @@ helps users determine whether a node meets their requirements before initiating 
 				})
 			}
 
-			if err := setupFunc(); err != nil {
+			if err := setupFunc(ctx); err != nil {
 				return fmt.Errorf("setting up: %w", err)
 			}
 
 			eg, ctx := errgroup.WithContext(ctx)
 
 			eg.Go(func() error {
-				if err := startFunc(); err != nil {
+				ctx, err := startFunc(ctx)
+				if err != nil {
 					return fmt.Errorf("starting: %w", err)
 				}
 
 				log.Info("Inspection started successfully")
-				if err := waitFunc(); err != nil {
+				if err := waitFunc(ctx); err != nil {
 					return fmt.Errorf("waiting: %w", err)
 				}
 
@@ -257,6 +261,7 @@ helps users determine whether a node meets their requirements before initiating 
 				}
 
 				log.Info("Inspection stopped successfully")
+
 				return nil
 			})
 

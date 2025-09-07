@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// querySubscriptionCmd returns a command to query a specific subscription by ID
+// querySubscriptionCmd returns a command to query a specific subscription by ID.
 func querySubscriptionCmd(cfg *config.Config) *cobra.Command {
 	h := &Handler{
 		Command: cobra.Command{
@@ -40,11 +40,14 @@ func querySubscriptionCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// querySubscriptionsCmd returns a command to query all subscriptions
+// querySubscriptionsCmd returns a command to query all subscriptions.
 func querySubscriptionsCmd(cfg *config.Config) *cobra.Command {
 	pageReq := query.PageRequest{Limit: 10}
-	var accAddrStr string
-	var planID uint64
+
+	var (
+		accAddrStr string
+		planID     uint64
+	)
 
 	h := &Handler{
 		Command: cobra.Command{

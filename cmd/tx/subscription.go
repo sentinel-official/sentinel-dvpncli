@@ -104,8 +104,10 @@ func txSubscriptionShareCmd(cfg *config.Config) *cobra.Command {
 }
 
 func txSubscriptionStartCmd(cfg *config.Config) *cobra.Command {
-	var denom string
-	var renewalPricePolicyStr string
+	var (
+		denom                 string
+		renewalPricePolicyStr string
+	)
 
 	h := &Handler{
 		Command: cobra.Command{

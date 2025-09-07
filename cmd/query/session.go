@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// querySessionCmd returns a command to query a specific session by ID
+// querySessionCmd returns a command to query a specific session by ID.
 func querySessionCmd(cfg *config.Config) *cobra.Command {
 	h := &Handler{
 		Command: cobra.Command{
@@ -41,12 +41,15 @@ func querySessionCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// querySessionsCmd returns a command to query all sessions
+// querySessionsCmd returns a command to query all sessions.
 func querySessionsCmd(cfg *config.Config) *cobra.Command {
 	pageReq := query.PageRequest{Limit: 10}
-	var accAddrStr string
-	var nodeAddrStr string
-	var subscriptionID uint64
+
+	var (
+		accAddrStr     string
+		nodeAddrStr    string
+		subscriptionID uint64
+	)
 
 	h := &Handler{
 		Command: cobra.Command{

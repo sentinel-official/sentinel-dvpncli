@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// queryProviderCmd returns a command to query a specific provider by address
+// queryProviderCmd returns a command to query a specific provider by address.
 func queryProviderCmd(cfg *config.Config) *cobra.Command {
 	h := &Handler{
 		Command: cobra.Command{
@@ -40,9 +40,10 @@ func queryProviderCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// queryProvidersCmd returns a command to query all providers
+// queryProvidersCmd returns a command to query all providers.
 func queryProvidersCmd(cfg *config.Config) *cobra.Command {
 	pageReq := query.PageRequest{Limit: 10}
+
 	var statusStr string
 
 	h := &Handler{

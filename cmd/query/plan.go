@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// queryPlanCmd returns a command to query a specific plan by ID
+// queryPlanCmd returns a command to query a specific plan by ID.
 func queryPlanCmd(cfg *config.Config) *cobra.Command {
 	h := &Handler{
 		Command: cobra.Command{
@@ -41,11 +41,14 @@ func queryPlanCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// queryPlansCmd returns a command to query all plans
+// queryPlansCmd returns a command to query all plans.
 func queryPlansCmd(cfg *config.Config) *cobra.Command {
 	pageReq := query.PageRequest{Limit: 10}
-	var provAddrStr string
-	var statusStr string
+
+	var (
+		provAddrStr string
+		statusStr   string
+	)
 
 	h := &Handler{
 		Command: cobra.Command{

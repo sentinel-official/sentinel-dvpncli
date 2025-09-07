@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// queryDepositCmd returns a command to query a specific deposit by address
+// queryDepositCmd returns a command to query a specific deposit by address.
 func queryDepositCmd(cfg *config.Config) *cobra.Command {
 	h := &Handler{
 		Command: cobra.Command{
@@ -39,7 +39,7 @@ func queryDepositCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// queryDepositsCmd returns a command to query all deposits
+// queryDepositsCmd returns a command to query all deposits.
 func queryDepositsCmd(cfg *config.Config) *cobra.Command {
 	pageReq := query.PageRequest{Limit: 10}
 

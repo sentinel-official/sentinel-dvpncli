@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// queryNodeCmd returns a command to query a specific node by address
+// queryNodeCmd returns a command to query a specific node by address.
 func queryNodeCmd(cfg *config.Config) *cobra.Command {
 	h := &Handler{
 		Command: cobra.Command{
@@ -40,11 +40,14 @@ func queryNodeCmd(cfg *config.Config) *cobra.Command {
 	return cmd
 }
 
-// queryNodesCmd returns a command to query all nodes
+// queryNodesCmd returns a command to query all nodes.
 func queryNodesCmd(cfg *config.Config) *cobra.Command {
 	pageReq := query.PageRequest{Limit: 10}
-	var planID uint64
-	var statusStr string
+
+	var (
+		planID    uint64
+		statusStr string
+	)
 
 	h := &Handler{
 		Command: cobra.Command{
