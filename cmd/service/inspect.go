@@ -19,7 +19,6 @@ import (
 	"github.com/sentinel-official/sentinelhub/v12/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -49,8 +48,6 @@ helps users determine whether a node meets their requirements before initiating 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancelTimeout := context.WithTimeout(cmd.Context(), timeout)
 			defer cancelTimeout()
-
-			homeDir := viper.GetString("home")
 
 			// Parse the node address from the command argument
 			addr, err := types.NodeAddressFromBech32(args[0])
@@ -114,9 +111,20 @@ helps users determine whether a node meets their requirements before initiating 
 				return fmt.Errorf("starting session for node %q: %w", addr.String(), err)
 			}
 
+			// Create a temporary directory to store configuration
+			tempDir, err := os.MkdirTemp("", "inspect-")
+			if err != nil {
+				return fmt.Errorf("creating temporary directory: %w", err)
+			}
+
+			// Ensure the temporary directory is removed when done
+			defer func() {
+				_ = os.RemoveAll(tempDir)
+			}()
+
 			builder := &Builder{
 				Client:       client,
-				HomeDir:      homeDir,
+				HomeDir:      tempDir,
 				ID:           id,
 				Type:         info.GetServiceType(),
 				V2RayCfg:     v2rayCfg,
