@@ -5,8 +5,9 @@ FROM golang:1.25-alpine3.22 AS build
 WORKDIR /root
 
 # Install build dependencies
-RUN apk add --no-cache --virtual .build-deps \
-    git make
+RUN apk add --no-cache \
+    git \
+    make
 
 # Cache Go modules
 COPY go.mod go.sum ./
@@ -27,6 +28,7 @@ FROM alpine:3.22
 # Install runtime dependencies
 RUN apk add --no-cache \
     iptables \
+    openresolv \
     openvpn \
     v2ray \
     wireguard-tools && \
