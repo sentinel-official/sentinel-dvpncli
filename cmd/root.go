@@ -7,6 +7,7 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/cmd"
 	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -26,6 +27,9 @@ func NewRootCmd(userDir string) *cobra.Command {
 
 	// Initialize default configuration
 	cfg := config.DefaultConfig()
+	cfg.RPC.Headers = map[string]string{
+		"User-Agent": fmt.Sprintf("Sentinel (dVPN CLI/%s)", version.Tag),
+	}
 
 	// Create the root command
 	rootCmd := &cobra.Command{
