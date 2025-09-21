@@ -76,7 +76,7 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 			})
 
 			if err := eg.Wait(); err != nil {
-				return nil, fmt.Errorf("querying params: %w", err)
+				return nil, fmt.Errorf("waiting group: %w", err)
 			}
 
 			items := make(map[string]interface{})

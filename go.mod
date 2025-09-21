@@ -5,7 +5,7 @@ go 1.24.6
 require (
 	cosmossdk.io/math v1.5.3
 	github.com/cosmos/cosmos-sdk v0.47.17
-	github.com/sentinel-official/sentinel-go-sdk v1.0.0-rc.6.0.20250917035104-10f05c99ae54
+	github.com/sentinel-official/sentinel-go-sdk v1.0.0-rc.6.0.20250918124735-46412cbc5091
 	github.com/sentinel-official/sentinelhub/v12 v12.0.0-rc.12.0.20250912055719-1f5a34c051d2
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
