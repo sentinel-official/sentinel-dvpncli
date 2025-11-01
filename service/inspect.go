@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/sentinel-official/sentinel-go-sdk/app"
 	"github.com/sentinel-official/sentinel-go-sdk/core/config"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
@@ -66,9 +67,11 @@ helps users determine whether a node meets their requirements before initiating 
 			if err != nil {
 				return fmt.Errorf("querying node %q: %w", addr.String(), err)
 			}
+
 			if n == nil {
 				return fmt.Errorf("node %q does not exist", addr.String())
 			}
+
 			if !n.Status.Equal(v1.StatusActive) {
 				return fmt.Errorf("invalid node status %q; expected %q", n.Status, v1.StatusActive)
 			}
@@ -101,6 +104,7 @@ helps users determine whether a node meets their requirements before initiating 
 			if err != nil {
 				return fmt.Errorf("getting node %q info: %w", addr.String(), err)
 			}
+
 			if info.GetServiceType() == sentinelsdk.ServiceTypeUnspecified {
 				return fmt.Errorf("unspecified service type for node %q", addr.String())
 			}
@@ -142,6 +146,7 @@ helps users determine whether a node meets their requirements before initiating 
 			setupFunc := func(ctx context.Context) error {
 				return manager.Setup(ctx, func() error {
 					log.Info("Setting up service")
+
 					if err := service.Setup(ctx); err != nil {
 						return fmt.Errorf("setting up service: %w", err)
 					}
@@ -153,6 +158,7 @@ helps users determine whether a node meets their requirements before initiating 
 			startFunc := func(parent context.Context) (context.Context, error) {
 				return manager.Start(parent, func(ctx context.Context) error {
 					log.Info("Starting service")
+
 					serviceCtx, err := service.Start(ctx)
 					if err != nil {
 						return fmt.Errorf("starting service: %w", err)
@@ -181,6 +187,7 @@ helps users determine whether a node meets their requirements before initiating 
 								if err != nil {
 									return fmt.Errorf("checking service status: %w", err)
 								}
+
 								if !ok {
 									continue
 								}
@@ -201,17 +208,31 @@ helps users determine whether a node meets their requirements before initiating 
 								}
 
 								// Create a new GeoIP client
-								gc := geoip.NewDefaultClient()
+								client := geoip.NewDefaultClient()
 
-								// Lookup the node's location
-								location, err := gc.Get(ctx, "")
-								if err != nil {
-									return fmt.Errorf("getting GeoIP location: %w", err)
+								retryFunc := func() error {
+									// Lookup the node's location
+									location, err := client.Get(ctx, "")
+									if err != nil {
+										return fmt.Errorf("getting GeoIP location: %w", err)
+									}
+
+									// Write the location to stdout in JSON format
+									if err := utils.Writeln(cmd.OutOrStdout(), location, "json"); err != nil {
+										return fmt.Errorf("writing GeoIP location: %w", err)
+									}
+
+									return nil
 								}
 
-								// Write the location to stdout in JSON format
-								if err := utils.Writeln(cmd.OutOrStdout(), location, "json"); err != nil {
-									return fmt.Errorf("writing GeoIP location: %w", err)
+								if err := retry.Do(
+									retryFunc,
+									retry.Context(ctx),
+									retry.Attempts(5),
+									retry.Delay(1*time.Second),
+									retry.DelayType(retry.FixedDelay),
+								); err != nil {
+									return fmt.Errorf("getting GeoIP location failed after multiple retries: %w", err)
 								}
 
 								return nil
@@ -230,6 +251,7 @@ helps users determine whether a node meets their requirements before initiating 
 			stopFunc := func() error {
 				return manager.Stop(func() error {
 					log.Info("Stopping service")
+
 					if err := service.Stop(); err != nil {
 						return fmt.Errorf("stopping service: %w", err)
 					}
@@ -251,6 +273,7 @@ helps users determine whether a node meets their requirements before initiating 
 				}
 
 				log.Info("Inspection started successfully")
+
 				if err := waitFunc(ctx); err != nil {
 					return fmt.Errorf("waiting: %w", err)
 				}

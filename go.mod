@@ -4,6 +4,7 @@ go 1.24.6
 
 require (
 	cosmossdk.io/math v1.5.3
+	github.com/avast/retry-go/v4 v4.7.0
 	github.com/cosmos/cosmos-sdk v0.47.17
 	github.com/sentinel-official/sentinel-go-sdk v1.0.0
 	github.com/sentinel-official/sentinelhub/v12 v12.0.0
@@ -26,7 +27,6 @@ require (
 	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/adrg/xdg v0.5.3 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
-	github.com/avast/retry-go/v4 v4.7.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.2.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect

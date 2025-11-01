@@ -69,10 +69,13 @@ func queryNodesCmd(cfg *config.Config) *cobra.Command {
 			Short: "Query all nodes",
 		},
 		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (res interface{}, err error) {
-			var nodes []v3.Node
-			var pageRes *query.PageResponse
+			var (
+				nodes   []v3.Node
+				pageRes *query.PageResponse
+			)
 
 			// Query for plan
+
 			if planID != 0 {
 				nodes, pageRes, err = c.NodesForPlan(cmd.Context(), planID, v1.StatusFromString(statusStr), &pageReq)
 				if err != nil {
@@ -85,10 +88,13 @@ func queryNodesCmd(cfg *config.Config) *cobra.Command {
 				}
 			}
 
-			var items []map[string]interface{}
-			var m sync.Mutex
+			var (
+				items []map[string]interface{}
+				m     sync.Mutex
+			)
 
 			eg, ctx := errgroup.WithContext(cmd.Context())
+
 			for _, value := range nodes {
 				item := value
 

@@ -54,9 +54,11 @@ down, and post-down tasks.`,
 			if err != nil {
 				return fmt.Errorf("querying session %d: %w", id, err)
 			}
+
 			if session == nil {
 				return fmt.Errorf("session %d does not exist", id)
 			}
+
 			if !session.GetStatus().Equal(v1.StatusActive) {
 				return fmt.Errorf("invalid session status %q, expected %q", session.GetStatus(), v1.StatusActive)
 			}
@@ -70,9 +72,11 @@ down, and post-down tasks.`,
 			if err != nil {
 				return fmt.Errorf("querying node %q: %w", addr.String(), err)
 			}
+
 			if n == nil {
 				return fmt.Errorf("node %q does not exist", addr.String())
 			}
+
 			if !n.Status.Equal(v1.StatusActive) {
 				return fmt.Errorf("invalid node status %q; expected %q", n.Status, v1.StatusActive)
 			}
@@ -84,6 +88,7 @@ down, and post-down tasks.`,
 			if err != nil {
 				return fmt.Errorf("fetching node %q info: %w", addr.String(), err)
 			}
+
 			if info.GetServiceType() == sentinelsdk.ServiceTypeUnspecified {
 				return fmt.Errorf("unspecified service type for node %q", addr.String())
 			}
@@ -107,6 +112,7 @@ down, and post-down tasks.`,
 			setupFunc := func(ctx context.Context) error {
 				return manager.Setup(ctx, func() error {
 					log.Info("Setting up service")
+
 					if err := service.Setup(ctx); err != nil {
 						return fmt.Errorf("setting up service: %w", err)
 					}
@@ -118,6 +124,7 @@ down, and post-down tasks.`,
 			startFunc := func(parent context.Context) (context.Context, error) {
 				return manager.Start(parent, func(ctx context.Context) error {
 					log.Info("Starting service")
+
 					serviceCtx, err := service.Start(ctx)
 					if err != nil {
 						return fmt.Errorf("starting service: %w", err)
@@ -142,6 +149,7 @@ down, and post-down tasks.`,
 			stopFunc := func() error {
 				return manager.Stop(func() error {
 					log.Info("Stopping service")
+
 					if err := service.Stop(); err != nil {
 						return app.NewErrShutdown(err)
 					}
@@ -164,6 +172,7 @@ down, and post-down tasks.`,
 				}
 
 				log.Info("Client started successfully")
+
 				if err := waitFunc(ctx); err != nil {
 					return fmt.Errorf("waiting: %w", err)
 				}
@@ -173,6 +182,7 @@ down, and post-down tasks.`,
 
 			eg.Go(func() error {
 				<-ctx.Done()
+
 				if err := stopFunc(); err != nil {
 					return app.NewErrShutdown(fmt.Errorf("stopping: %w", err))
 				}
