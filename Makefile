@@ -1,45 +1,55 @@
-PACKAGES := $(shell go list ./...)
-VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
-COMMIT := $(shell git log -1 --format='%H')
+.DEFAULT_GOAL := help
 
-BUILD_TAGS := $(strip netgo,ledger)
-LD_FLAGS := -s -w \
-	-X github.com/cosmos/cosmos-sdk/version.Name=sentinel \
-	-X github.com/cosmos/cosmos-sdk/version.AppName=sentinelcli \
-	-X github.com/cosmos/cosmos-sdk/version.Version=${VERSION} \
-	-X github.com/cosmos/cosmos-sdk/version.Commit=${COMMIT} \
-	-X github.com/cosmos/cosmos-sdk/version.BuildTags=${BUILD_TAGS}
+GIT_COMMIT := $(shell git log -1 --format='%H' 2>/dev/null || echo "unknown")
+GIT_TAG    := $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/^v//')
 
-.PHONY: benchmark
-benchmark:
-	@go test -mod=readonly -v -bench= ${PACKAGES}
+TAGS      := $(strip netgo)
+LD_FLAGS  := -s -w \
+	-X github.com/sentinel-official/sentinel-go-sdk/version.Commit=$(GIT_COMMIT) \
+	-X github.com/sentinel-official/sentinel-go-sdk/version.Tag=$(GIT_TAG)
 
-.PHONY: clean
-clean:
-	rm -rf ./build
+build_flags = -ldflags="$(LD_FLAGS)" -mod=readonly -tags="$(TAGS)" -trimpath
+
+GOBIN ?= $(shell go env GOBIN)
+ifeq ($(GOBIN),)
+  GOBIN := $(shell go env GOPATH)/bin
+endif
+
+.PHONY: help
+help:
+	@echo "Available targets:"
+	@echo "  build        Build the binary (./bin/sentinel-dvpncli)"
+	@echo "  install      Install the binary to \$$GOBIN"
+	@echo "  clean        Remove build artifacts"
+	@echo "  test         Run tests with coverage"
+	@echo "  benchmark    Run benchmarks"
+	@echo "  go-lint      Run golangci-lint with auto-fix"
+	@echo "  build-image  Build Docker image"
 
 .PHONY: build
 build:
-	GOOS=darwin GOARCH=amd64 go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
-		-o ./build/sentinelcli-${VERSION}-darwin-amd64 main.go
-	GOOS=linux GOARCH=amd64 go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
-		-o ./build/sentinelcli-${VERSION}-linux-amd64 main.go
-	GOOS=windows GOARCH=amd64 go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
-		-o ./build/sentinelcli-${VERSION}-windows-amd64.exe main.go
+	go build $(build_flags) -o ./bin/sentinel-dvpncli main.go
 
 .PHONY: install
 install:
-	go build -mod=readonly -tags="${BUILD_TAGS}" -ldflags="${LD_FLAGS}" \
-		-o ${GOPATH}/bin/sentinelcli main.go
+	go build $(build_flags) -o "$(GOBIN)/sentinel-dvpncli" main.go
 
-.PHONY: go-lint
-go-lint:
-	@golangci-lint run --fix
+.PHONY: clean
+clean:
+	$(RM) -r ./bin ./vendor
 
 .PHONY: test
 test:
-	@go test -mod=readonly -v -cover ${PACKAGES}
+	go test -cover -mod=readonly -v ./...
 
-.PHONY: tools
-tools:
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.27.0
+.PHONY: benchmark
+benchmark:
+	go test -bench -mod=readonly -v ./...
+
+.PHONY: go-lint
+go-lint:
+	golangci-lint run --fix
+
+.PHONY: build-image
+build-image:
+	docker build --compress --file Dockerfile --force-rm --tag sentinel-dvpncli .
