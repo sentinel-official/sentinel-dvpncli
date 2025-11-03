@@ -18,7 +18,7 @@ func queryDepositCmd(cfg *config.Config) *cobra.Command {
 			Short: "Query a deposit",
 			Args:  cobra.ExactArgs(1),
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			addr, err := types.AccAddressFromBech32(args[0])
 			if err != nil {
 				return nil, fmt.Errorf("parse addr %q: %w", args[0], err)
@@ -48,7 +48,7 @@ func queryDepositsCmd(cfg *config.Config) *cobra.Command {
 			Use:   "deposits",
 			Short: "Query all deposits",
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			// Query all
 			items, pageRes, err := c.Deposits(cmd.Context(), &pageReq)
 			if err != nil {

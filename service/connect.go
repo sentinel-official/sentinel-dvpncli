@@ -10,7 +10,6 @@ import (
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
 	"github.com/sentinel-official/sentinel-go-sdk/process"
-	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
 	"github.com/sentinel-official/sentinelhub/v12/types"
@@ -89,10 +88,6 @@ down, and post-down tasks.`,
 				return fmt.Errorf("fetching node %q info: %w", addr.String(), err)
 			}
 
-			if info.GetServiceType() == sentinelsdk.ServiceTypeUnspecified {
-				return fmt.Errorf("unspecified service type for node %q", addr.String())
-			}
-
 			builder := &Builder{
 				Client:       client,
 				HomeDir:      homeDir,
@@ -107,7 +102,7 @@ down, and post-down tasks.`,
 				return fmt.Errorf("building service %q: %w", info.GetServiceType(), err)
 			}
 
-			manager := process.NewManager("manager")
+			manager := process.NewManager("client")
 
 			setupFunc := func(ctx context.Context) error {
 				return manager.Setup(ctx, func() error {
@@ -121,8 +116,8 @@ down, and post-down tasks.`,
 				})
 			}
 
-			startFunc := func(parent context.Context) (context.Context, error) {
-				return manager.Start(parent, func(ctx context.Context) error {
+			startFunc := func(ctx context.Context) (context.Context, error) {
+				return manager.Start(ctx, func(ctx context.Context) error {
 					log.Info("Starting service")
 
 					serviceCtx, err := service.Start(ctx)
@@ -151,7 +146,7 @@ down, and post-down tasks.`,
 					log.Info("Stopping service")
 
 					if err := service.Stop(); err != nil {
-						return app.NewErrShutdown(err)
+						return fmt.Errorf("stopping service: %w", err)
 					}
 
 					return nil
@@ -159,7 +154,7 @@ down, and post-down tasks.`,
 			}
 
 			if err := setupFunc(ctx); err != nil {
-				return fmt.Errorf("setting up: %w", err)
+				return fmt.Errorf("setting up client: %w", err)
 			}
 
 			// Create an errgroup with the signal-aware context.
@@ -168,13 +163,13 @@ down, and post-down tasks.`,
 			eg.Go(func() error {
 				ctx, err := startFunc(ctx)
 				if err != nil {
-					return fmt.Errorf("starting: %w", err)
+					return fmt.Errorf("starting client: %w", err)
 				}
 
 				log.Info("Client started successfully")
 
 				if err := waitFunc(ctx); err != nil {
-					return fmt.Errorf("waiting: %w", err)
+					return fmt.Errorf("waiting client: %w", err)
 				}
 
 				return nil
@@ -184,7 +179,7 @@ down, and post-down tasks.`,
 				<-ctx.Done()
 
 				if err := stopFunc(); err != nil {
-					return app.NewErrShutdown(fmt.Errorf("stopping: %w", err))
+					return app.NewErrStop(fmt.Errorf("stopping client: %w", err))
 				}
 
 				log.Info("Client stopped successfully")
@@ -193,7 +188,7 @@ down, and post-down tasks.`,
 			})
 
 			if err := eg.Wait(); err != nil {
-				return fmt.Errorf("waiting group: %w", err)
+				return fmt.Errorf("waiting: %w", err)
 			}
 
 			return nil

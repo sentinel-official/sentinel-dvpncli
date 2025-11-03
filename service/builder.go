@@ -104,10 +104,13 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 
 		return service, nil
 
-	case types.ServiceTypeOpenVPN, types.ServiceTypeUnspecified:
-		return nil, fmt.Errorf("unsupported service type %q", b.Type)
+	case types.ServiceTypeOpenVPN:
+		return nil, fmt.Errorf("unspported service type %q", b.Type)
+
+	case types.ServiceTypeUnspecified:
+		return nil, fmt.Errorf("unspecified service type %q", b.Type)
 
 	default:
-		return nil, fmt.Errorf("unsupported service type %q", b.Type)
+		return nil, fmt.Errorf("unknown service type %q", b.Type)
 	}
 }

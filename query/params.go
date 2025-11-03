@@ -16,8 +16,8 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 			Use:   "params",
 			Short: "Query all parameters",
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
-			m := safe.NewMap[string, interface{}]()
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
+			m := safe.NewMap[string, any]()
 
 			eg, ctx := errgroup.WithContext(cmd.Context())
 			eg.Go(func() error {
@@ -79,8 +79,9 @@ func queryParamsCmd(cfg *config.Config) *cobra.Command {
 				return nil, fmt.Errorf("waiting group: %w", err)
 			}
 
-			items := make(map[string]interface{})
-			m.RangeGet(func(k string, v interface{}) bool {
+			items := make(map[string]any)
+
+			m.RangeGet(func(k string, v any) bool {
 				items[k] = v
 
 				return false

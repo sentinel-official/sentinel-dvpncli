@@ -19,7 +19,7 @@ func querySubscriptionCmd(cfg *config.Config) *cobra.Command {
 			Short: "Query a subscription",
 			Args:  cobra.ExactArgs(1),
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			id, err := strconv.ParseUint(args[0], 10, 64)
 			if err != nil {
 				return nil, fmt.Errorf("parsing id %q: %w", args[0], err)
@@ -54,7 +54,7 @@ func querySubscriptionsCmd(cfg *config.Config) *cobra.Command {
 			Use:   "subscriptions",
 			Short: "Query all subscriptions",
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			// Query for account
 			if accAddrStr != "" {
 				accAddr, err := types.AccAddressFromBech32(accAddrStr)

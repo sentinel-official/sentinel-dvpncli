@@ -60,8 +60,8 @@ func NewCommand(cfg *config.Config, h *Handler) *cobra.Command {
 	return cmd
 }
 
-func PrepareResponse(resp, res interface{}) map[string]interface{} {
-	return map[string]interface{}{
+func PrepareResponse(resp, res any) map[string]any {
+	return map[string]any{
 		"response": resp,
 		"result":   res,
 	}

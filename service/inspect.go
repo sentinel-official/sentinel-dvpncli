@@ -141,7 +141,7 @@ helps users determine whether a node meets their requirements before initiating 
 			}
 
 			inspectionDone := make(chan struct{})
-			manager := process.NewManager("manager")
+			manager := process.NewManager("inspection")
 
 			setupFunc := func(ctx context.Context) error {
 				return manager.Setup(ctx, func() error {
@@ -155,8 +155,8 @@ helps users determine whether a node meets their requirements before initiating 
 				})
 			}
 
-			startFunc := func(parent context.Context) (context.Context, error) {
-				return manager.Start(parent, func(ctx context.Context) error {
+			startFunc := func(ctx context.Context) (context.Context, error) {
+				return manager.Start(ctx, func(ctx context.Context) error {
 					log.Info("Starting service")
 
 					serviceCtx, err := service.Start(ctx)
@@ -232,7 +232,7 @@ helps users determine whether a node meets their requirements before initiating 
 									retry.Delay(1*time.Second),
 									retry.DelayType(retry.FixedDelay),
 								); err != nil {
-									return fmt.Errorf("getting GeoIP location failed after multiple retries: %w", err)
+									return fmt.Errorf("inspecting GeoIP location failed after multiple retries: %w", err)
 								}
 
 								return nil
@@ -261,7 +261,7 @@ helps users determine whether a node meets their requirements before initiating 
 			}
 
 			if err := setupFunc(ctx); err != nil {
-				return fmt.Errorf("setting up: %w", err)
+				return fmt.Errorf("setting up inspection: %w", err)
 			}
 
 			eg, ctx := errgroup.WithContext(ctx)
@@ -269,13 +269,13 @@ helps users determine whether a node meets their requirements before initiating 
 			eg.Go(func() error {
 				ctx, err := startFunc(ctx)
 				if err != nil {
-					return fmt.Errorf("starting: %w", err)
+					return fmt.Errorf("starting inspection: %w", err)
 				}
 
 				log.Info("Inspection started successfully")
 
 				if err := waitFunc(ctx); err != nil {
-					return fmt.Errorf("waiting: %w", err)
+					return fmt.Errorf("waiting inspection: %w", err)
 				}
 
 				return nil
@@ -288,7 +288,7 @@ helps users determine whether a node meets their requirements before initiating 
 				}
 
 				if err := stopFunc(); err != nil {
-					return app.NewErrShutdown(fmt.Errorf("stopping: %w", err))
+					return app.NewErrStop(fmt.Errorf("stopping inspection: %w", err))
 				}
 
 				log.Info("Inspection stopped successfully")
@@ -297,7 +297,7 @@ helps users determine whether a node meets their requirements before initiating 
 			})
 
 			if err := eg.Wait(); err != nil {
-				return fmt.Errorf("waiting group: %w", err)
+				return fmt.Errorf("waiting: %w", err)
 			}
 
 			return nil

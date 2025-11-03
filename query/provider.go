@@ -19,7 +19,7 @@ func queryProviderCmd(cfg *config.Config) *cobra.Command {
 			Short: "Query a provider",
 			Args:  cobra.ExactArgs(1),
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			addr, err := types.ProvAddressFromBech32(args[0])
 			if err != nil {
 				return nil, fmt.Errorf("parsing provider addr %q: %w", args[0], err)
@@ -51,7 +51,7 @@ func queryProvidersCmd(cfg *config.Config) *cobra.Command {
 			Use:   "providers",
 			Short: "Query all providers",
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			// Query all
 			items, pageRes, err := c.Providers(cmd.Context(), v1.StatusFromString(statusStr), &pageReq)
 			if err != nil {

@@ -14,7 +14,7 @@ import (
 type Handler struct {
 	cobra.Command
 
-	RunE func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error)
+	RunE func(cmd *cobra.Command, args []string, c *core.Client) (any, error)
 }
 
 // NewCommand builds a Cobra command from a Handler.
@@ -47,8 +47,8 @@ func NewCommand(cfg *config.Config, h *Handler) *cobra.Command {
 	return cmd
 }
 
-func PrepareResponse(items, page interface{}) map[string]interface{} {
-	return map[string]interface{}{
+func PrepareResponse(items, page any) map[string]any {
+	return map[string]any{
 		"items": items,
 		"page":  page,
 	}

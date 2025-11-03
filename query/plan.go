@@ -20,7 +20,7 @@ func queryPlanCmd(cfg *config.Config) *cobra.Command {
 			Short: "Query a plan",
 			Args:  cobra.ExactArgs(1),
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			id, err := strconv.ParseUint(args[0], 10, 64)
 			if err != nil {
 				return nil, fmt.Errorf("parsing id %q: %w", args[0], err)
@@ -55,7 +55,7 @@ func queryPlansCmd(cfg *config.Config) *cobra.Command {
 			Use:   "plans",
 			Short: "Query all plans",
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			// Query for provider
 			if provAddrStr != "" {
 				provAddr, err := types.ProvAddressFromBech32(provAddrStr)

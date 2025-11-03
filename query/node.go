@@ -23,7 +23,7 @@ func queryNodeCmd(cfg *config.Config) *cobra.Command {
 			Short: "Query a node",
 			Args:  cobra.ExactArgs(1),
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (interface{}, error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (any, error) {
 			addr, err := types.NodeAddressFromBech32(args[0])
 			if err != nil {
 				return nil, fmt.Errorf("parsing node addr %q: %w", args[0], err)
@@ -42,7 +42,7 @@ func queryNodeCmd(cfg *config.Config) *cobra.Command {
 
 			info, _ := nc.GetInfo(cmd.Context())
 
-			return map[string]interface{}{
+			return map[string]any{
 				"info": info,
 				"node": item,
 			}, nil
@@ -68,7 +68,7 @@ func queryNodesCmd(cfg *config.Config) *cobra.Command {
 			Use:   "nodes",
 			Short: "Query all nodes",
 		},
-		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (res interface{}, err error) {
+		RunE: func(cmd *cobra.Command, args []string, c *core.Client) (res any, err error) {
 			var (
 				nodes   []v3.Node
 				pageRes *query.PageResponse
@@ -89,7 +89,7 @@ func queryNodesCmd(cfg *config.Config) *cobra.Command {
 			}
 
 			var (
-				items []map[string]interface{}
+				items []map[string]any
 				m     sync.Mutex
 			)
 
@@ -105,7 +105,7 @@ func queryNodesCmd(cfg *config.Config) *cobra.Command {
 						m.Lock()
 						defer m.Unlock()
 
-						items = append(items, map[string]interface{}{
+						items = append(items, map[string]any{
 							"info": info,
 							"node": item,
 						})
