@@ -8,7 +8,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.47.17
 	github.com/sentinel-official/sentinel-go-sdk v1.0.1-0.20251102122047-d584f6681d3c
 	github.com/sentinel-official/sentinelhub/v12 v12.0.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	golang.org/x/sync v0.18.0
