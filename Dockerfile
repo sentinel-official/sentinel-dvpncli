@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     make --jobs=$(nproc) install
 
 # Runtime stage
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Install runtime dependencies
 RUN apk add --no-cache \
