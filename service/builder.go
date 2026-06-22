@@ -43,6 +43,9 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 	case types.ServiceTypeXray:
 		return b.buildXray(ctx)
 
+	case types.ServiceTypeAmneziaWG:
+		return b.buildAmneziaWG(ctx)
+
 	case types.ServiceTypeOpenVPN:
 		return nil, fmt.Errorf("unspported service type %q", b.Type)
 
@@ -188,6 +191,55 @@ func (b *Builder) buildXray(ctx context.Context) (types.ClientService, error) {
 
 	// Create Xray client and run PreUp.
 	service := xray.NewClient("xray", b.HomeDir, b.XrayCfg)
+	if err := service.Init(true); err != nil {
+		return nil, fmt.Errorf("running service init task: %w", err)
+	}
+
+	return service, nil
+}
+
+// buildAmneziaWG performs the AmneziaWG handshake and returns an initialized client service.
+func (b *Builder) buildAmneziaWG(ctx context.Context) (types.ClientService, error) {
+	// Create handshake request with public key.
+	pk := b.AmneziaWGCfg.GetPrivateKey()
+	addReq := &amneziawg.PeerRequest{PublicKey: pk.Public()}
+
+	// Perform the handshake with the node.
+	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
+	if err != nil {
+		return nil, fmt.Errorf("performing node handshake: %w", err)
+	}
+
+	// Decode handshake response.
+	var addResp amneziawg.AddPeerResponse
+	if err := json.Unmarshal(resp.Data, &addResp); err != nil {
+		return nil, fmt.Errorf("unmarshaling add peer response: %w", err)
+	}
+
+	// Apply handshake data to AmneziaWG config.
+	md := addResp.Metadata[0]
+	b.AmneziaWGCfg.Addrs = addResp.GetAddrs()
+	b.AmneziaWGCfg.Peer.Addr = resp.Addrs[0]
+	b.AmneziaWGCfg.Peer.Port = md.Port
+	b.AmneziaWGCfg.Peer.PublicKey = md.PublicKey.String()
+
+	// Apply handshake-affecting obfuscation parameters from metadata.
+	b.AmneziaWGCfg.Obfs.S1 = md.S1
+	b.AmneziaWGCfg.Obfs.S2 = md.S2
+	b.AmneziaWGCfg.Obfs.S3 = md.S3
+	b.AmneziaWGCfg.Obfs.S4 = md.S4
+	b.AmneziaWGCfg.Obfs.H1 = md.H1
+	b.AmneziaWGCfg.Obfs.H2 = md.H2
+	b.AmneziaWGCfg.Obfs.H3 = md.H3
+	b.AmneziaWGCfg.Obfs.H4 = md.H4
+	b.AmneziaWGCfg.Obfs.I1 = md.I1
+	b.AmneziaWGCfg.Obfs.I2 = md.I2
+	b.AmneziaWGCfg.Obfs.I3 = md.I3
+	b.AmneziaWGCfg.Obfs.I4 = md.I4
+	b.AmneziaWGCfg.Obfs.I5 = md.I5
+
+	// Create AmneziaWG client and run PreUp.
+	service := amneziawg.NewClient("amneziawg", b.HomeDir, b.AmneziaWGCfg)
 	if err := service.Init(true); err != nil {
 		return nil, fmt.Errorf("running service init task: %w", err)
 	}
