@@ -7,16 +7,20 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
+	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/app"
 	"github.com/sentinel-official/sentinel-go-sdk/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/geoip"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
+	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
 	"github.com/sentinel-official/sentinel-go-sdk/process"
 	sentinelsdk "github.com/sentinel-official/sentinel-go-sdk/types"
 	"github.com/sentinel-official/sentinel-go-sdk/utils"
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/xray"
 	"github.com/sentinel-official/sentinelhub/v12/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"github.com/spf13/cobra"
@@ -26,9 +30,13 @@ import (
 // NewInspectCmd returns a new command for inspecting a Sentinel node's status,
 // connectivity, and location information.
 func NewInspectCmd(cfg *config.Config) *cobra.Command { //nolint:gocyclo,maintidx
-	// Default v2ray and wireguard client configurations
-	v2rayCfg := v2ray.DefaultClientConfig()
+	// Default client configurations for each supported service type.
 	wireguardCfg := wireguard.DefaultClientConfig()
+	v2rayCfg := v2ray.DefaultClientConfig()
+	openvpnCfg := openvpn.DefaultClientConfig()
+	xrayCfg := xray.DefaultClientConfig()
+	amneziawgCfg := amneziawg.DefaultClientConfig()
+	hysteria2Cfg := hysteria2.DefaultClientConfig()
 
 	// Define variables for other flags
 	var (
@@ -131,8 +139,12 @@ helps users determine whether a node meets their requirements before initiating 
 				HomeDir:      tempDir,
 				ID:           id,
 				Type:         info.GetServiceType(),
-				V2RayCfg:     v2rayCfg,
 				WireGuardCfg: wireguardCfg,
+				V2RayCfg:     v2rayCfg,
+				OpenVPNCfg:   openvpnCfg,
+				XrayCfg:      xrayCfg,
+				AmneziaWGCfg: amneziawgCfg,
+				Hysteria2Cfg: hysteria2Cfg,
 			}
 
 			service, err := builder.Build(ctx)
@@ -193,8 +205,20 @@ helps users determine whether a node meets their requirements before initiating 
 								}
 
 								// Set the proxy address to use for geolocation lookup
-								if service.Type() == sentinelsdk.ServiceTypeV2Ray {
-									proxyAddr := fmt.Sprintf("socks5://127.0.0.1:%d", v2rayCfg.Proxy.Port)
+								var proxyPort uint16
+								//nolint:exhaustive
+								switch service.Type() {
+								case sentinelsdk.ServiceTypeV2Ray:
+									proxyPort = v2rayCfg.Proxy.Port
+								case sentinelsdk.ServiceTypeXray:
+									proxyPort = xrayCfg.Proxy.Port
+								default:
+									// Other service types (WireGuard, AmneziaWG, Hysteria2, OpenVPN) are TUN full-tunnel
+									// and resolve GeoIP directly without a proxy
+								}
+
+								if proxyPort != 0 {
+									proxyAddr := fmt.Sprintf("socks5://127.0.0.1:%d", proxyPort)
 									m := map[string]string{
 										"HTTP_PROXY":  proxyAddr,
 										"HTTPS_PROXY": proxyAddr,
@@ -306,8 +330,12 @@ helps users determine whether a node meets their requirements before initiating 
 
 	// Set flags for the command
 	cfg.SetForFlags(cmd.Flags())
-	v2rayCfg.SetForFlags(cmd.Flags(), "v2ray")
 	wireguardCfg.SetForFlags(cmd.Flags(), "wireguard")
+	v2rayCfg.SetForFlags(cmd.Flags(), "v2ray")
+	openvpnCfg.SetForFlags(cmd.Flags(), "openvpn")
+	xrayCfg.SetForFlags(cmd.Flags(), "xray")
+	amneziawgCfg.SetForFlags(cmd.Flags(), "amneziawg")
+	hysteria2Cfg.SetForFlags(cmd.Flags(), "hysteria2")
 
 	cmd.Flags().StringVar(&maxPriceStr, "max-price", maxPriceStr, "maximum price per gigabyte for the session")
 	cmd.Flags().DurationVar(&timeout, "timeout", timeout, "maximum duration to wait for inspection before timing out")

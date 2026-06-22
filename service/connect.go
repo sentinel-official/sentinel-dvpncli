@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/app"
 	"github.com/sentinel-official/sentinel-go-sdk/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
 	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
+	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
 	"github.com/sentinel-official/sentinel-go-sdk/process"
 	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
 	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/xray"
 	"github.com/sentinel-official/sentinelhub/v12/types"
 	"github.com/sentinel-official/sentinelhub/v12/types/v1"
 	"github.com/spf13/cobra"
@@ -20,9 +24,13 @@ import (
 )
 
 func NewConnectCmd(cfg *config.Config) *cobra.Command {
-	// Default v2ray and wireguard client configurations
-	v2rayCfg := v2ray.DefaultClientConfig()
+	// Default client configurations for each supported service type.
 	wireguardCfg := wireguard.DefaultClientConfig()
+	v2rayCfg := v2ray.DefaultClientConfig()
+	openvpnCfg := openvpn.DefaultClientConfig()
+	xrayCfg := xray.DefaultClientConfig()
+	amneziawgCfg := amneziawg.DefaultClientConfig()
+	hysteria2Cfg := hysteria2.DefaultClientConfig()
 
 	cmd := &cobra.Command{
 		Use:   "connect [id]",
@@ -93,8 +101,12 @@ down, and post-down tasks.`,
 				HomeDir:      homeDir,
 				ID:           id,
 				Type:         info.GetServiceType(),
-				V2RayCfg:     v2rayCfg,
 				WireGuardCfg: wireguardCfg,
+				V2RayCfg:     v2rayCfg,
+				OpenVPNCfg:   openvpnCfg,
+				XrayCfg:      xrayCfg,
+				AmneziaWGCfg: amneziawgCfg,
+				Hysteria2Cfg: hysteria2Cfg,
 			}
 
 			service, err := builder.Build(ctx)
@@ -196,8 +208,12 @@ down, and post-down tasks.`,
 	}
 
 	cfg.SetForFlags(cmd.Flags())
-	v2rayCfg.SetForFlags(cmd.Flags(), "v2ray")
 	wireguardCfg.SetForFlags(cmd.Flags(), "wireguard")
+	v2rayCfg.SetForFlags(cmd.Flags(), "v2ray")
+	openvpnCfg.SetForFlags(cmd.Flags(), "openvpn")
+	xrayCfg.SetForFlags(cmd.Flags(), "xray")
+	amneziawgCfg.SetForFlags(cmd.Flags(), "amneziawg")
+	hysteria2Cfg.SetForFlags(cmd.Flags(), "hysteria2")
 
 	return cmd
 }
