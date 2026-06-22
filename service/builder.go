@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
 	"github.com/sentinel-official/sentinel-go-sdk/node"
@@ -23,24 +24,26 @@ type Builder struct {
 	HomeDir      string
 	ID           uint64
 	Type         types.ServiceType
-	V2RayCfg     *v2ray.ClientConfig
 	WireGuardCfg *wireguard.ClientConfig
+	V2RayCfg     *v2ray.ClientConfig
+	OpenVPNCfg   *openvpn.ClientConfig
 	XrayCfg      *xray.ClientConfig
 	AmneziaWGCfg *amneziawg.ClientConfig
 	Hysteria2Cfg *hysteria2.ClientConfig
-	OpenVPNCfg   *openvpn.ClientConfig
 }
 
 // Build creates and initializes a ClientService by performing the handshake,
 // applying configuration, and preparing it for use.
 func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
-	//nolint:exhaustive
 	switch b.Type {
+	case types.ServiceTypeWireGuard:
+		return b.buildWireGuard(ctx)
+
 	case types.ServiceTypeV2Ray:
 		return b.buildV2Ray(ctx)
 
-	case types.ServiceTypeWireGuard:
-		return b.buildWireGuard(ctx)
+	case types.ServiceTypeOpenVPN:
+		return b.buildOpenVPN(ctx)
 
 	case types.ServiceTypeXray:
 		return b.buildXray(ctx)
@@ -51,15 +54,45 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 	case types.ServiceTypeHysteria2:
 		return b.buildHysteria2(ctx)
 
-	case types.ServiceTypeOpenVPN:
-		return nil, fmt.Errorf("unspported service type %q", b.Type)
-
 	case types.ServiceTypeUnspecified:
 		return nil, fmt.Errorf("unspecified service type %q", b.Type)
 
 	default:
 		return nil, fmt.Errorf("unknown service type %q", b.Type)
 	}
+}
+
+// buildWireGuard performs the WireGuard handshake and returns an initialized client service.
+func (b *Builder) buildWireGuard(ctx context.Context) (types.ClientService, error) {
+	// Create handshake request with public key.
+	pk := b.WireGuardCfg.GetPrivateKey()
+	addReq := &wireguard.PeerRequest{PublicKey: pk.Public()}
+
+	// Perform the handshake with the node.
+	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
+	if err != nil {
+		return nil, fmt.Errorf("performing node handshake: %w", err)
+	}
+
+	// Decode handshake response.
+	var addResp wireguard.AddPeerResponse
+	if err := json.Unmarshal(resp.Data, &addResp); err != nil {
+		return nil, fmt.Errorf("unmarshaling add peer response: %w", err)
+	}
+
+	// Apply handshake data to WireGuard config.
+	b.WireGuardCfg.Addrs = addResp.GetAddrs()
+	b.WireGuardCfg.Peer.Addr = resp.Addrs[0]
+	b.WireGuardCfg.Peer.Port = addResp.Metadata[0].Port
+	b.WireGuardCfg.Peer.PublicKey = addResp.Metadata[0].PublicKey.String()
+
+	// Create WireGuard client and run PreUp.
+	service := wireguard.NewClient("wireguard", b.HomeDir, b.WireGuardCfg)
+	if err := service.Init(true); err != nil {
+		return nil, fmt.Errorf("running service init task: %w", err)
+	}
+
+	return service, nil
 }
 
 // buildV2Ray performs the V2Ray handshake and returns an initialized client service.
@@ -112,11 +145,10 @@ func (b *Builder) buildV2Ray(ctx context.Context) (types.ClientService, error) {
 	return service, nil
 }
 
-// buildWireGuard performs the WireGuard handshake and returns an initialized client service.
-func (b *Builder) buildWireGuard(ctx context.Context) (types.ClientService, error) {
-	// Create handshake request with public key.
-	pk := b.WireGuardCfg.GetPrivateKey()
-	addReq := &wireguard.PeerRequest{PublicKey: pk.Public()}
+// buildOpenVPN performs the OpenVPN handshake and returns an initialized client service.
+func (b *Builder) buildOpenVPN(ctx context.Context) (types.ClientService, error) {
+	// Create a handshake request with a generated UUID.
+	addReq := &openvpn.PeerRequest{UUID: uuid.New()}
 
 	// Perform the handshake with the node.
 	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
@@ -124,20 +156,24 @@ func (b *Builder) buildWireGuard(ctx context.Context) (types.ClientService, erro
 		return nil, fmt.Errorf("performing node handshake: %w", err)
 	}
 
-	// Decode handshake response.
-	var addResp wireguard.AddPeerResponse
+	// Decode the handshake response.
+	var addResp openvpn.AddPeerResponse
 	if err := json.Unmarshal(resp.Data, &addResp); err != nil {
 		return nil, fmt.Errorf("unmarshaling add peer response: %w", err)
 	}
 
-	// Apply handshake data to WireGuard config.
-	b.WireGuardCfg.Addrs = addResp.GetAddrs()
-	b.WireGuardCfg.Peer.Addr = resp.Addrs[0]
-	b.WireGuardCfg.Peer.Port = addResp.Metadata[0].Port
-	b.WireGuardCfg.Peer.PublicKey = addResp.Metadata[0].PublicKey.String()
+	// Apply handshake data to OpenVPN config.
+	md := addResp.Metadata[0]
+	b.OpenVPNCfg.Addr = resp.Addrs[0]
+	b.OpenVPNCfg.Port = md.Port
+	b.OpenVPNCfg.Protocol = md.Protocol
+	b.OpenVPNCfg.CA = md.CA
+	b.OpenVPNCfg.TLS = md.TLS
+	b.OpenVPNCfg.Cert = addResp.Cert
+	b.OpenVPNCfg.Key = addResp.Key
 
-	// Create WireGuard client and run PreUp.
-	service := wireguard.NewClient("wireguard", b.HomeDir, b.WireGuardCfg)
+	// Create OpenVPN client and run PreUp.
+	service := openvpn.NewClient("openvpn", b.HomeDir, b.OpenVPNCfg)
 	if err := service.Init(true); err != nil {
 		return nil, fmt.Errorf("running service init task: %w", err)
 	}
