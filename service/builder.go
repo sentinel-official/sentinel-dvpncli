@@ -40,6 +40,9 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 	case types.ServiceTypeWireGuard:
 		return b.buildWireGuard(ctx)
 
+	case types.ServiceTypeXray:
+		return b.buildXray(ctx)
+
 	case types.ServiceTypeOpenVPN:
 		return nil, fmt.Errorf("unspported service type %q", b.Type)
 
@@ -127,6 +130,64 @@ func (b *Builder) buildWireGuard(ctx context.Context) (types.ClientService, erro
 
 	// Create WireGuard client and run PreUp.
 	service := wireguard.NewClient("wireguard", b.HomeDir, b.WireGuardCfg)
+	if err := service.Init(true); err != nil {
+		return nil, fmt.Errorf("running service init task: %w", err)
+	}
+
+	return service, nil
+}
+
+// buildXray performs the Xray handshake and returns an initialized client service.
+func (b *Builder) buildXray(ctx context.Context) (types.ClientService, error) {
+	// Create a handshake request with the Xray UUID.
+	uuid := b.XrayCfg.GetID()
+	addReq := &xray.PeerRequest{UUID: uuid}
+
+	// Perform the handshake with the node.
+	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
+	if err != nil {
+		return nil, fmt.Errorf("performing node handshake: %w", err)
+	}
+
+	// Decode the handshake response.
+	var addResp xray.AddPeerResponse
+	if err := json.Unmarshal(resp.Data, &addResp); err != nil {
+		return nil, fmt.Errorf("unmarshaling add peer response: %w", err)
+	}
+
+	// Populate outbound configs from metadata.
+	for _, addr := range resp.Addrs {
+		for _, md := range addResp.Metadata {
+			port := md.GetPort()
+			if port == nil {
+				continue
+			}
+
+			for p := port.OutFrom; p <= port.OutTo; p++ {
+				b.XrayCfg.Outbounds = append(
+					b.XrayCfg.Outbounds,
+					&xray.OutboundClientConfig{
+						Addr:               addr,
+						Port:               p,
+						ProxyProtocol:      md.ProxyProtocol.String(),
+						TransportProtocol:  md.TransportProtocol.String(),
+						TransportSecurity:  md.TransportSecurity.String(),
+						Flow:               md.Flow.String(),
+						TLSPin:             md.TLSPin,
+						Method:             md.Method,
+						ServerKey:          md.Key,
+						RealityServerName:  md.RealityServerName,
+						RealityShortId:     md.RealityShortId,
+						RealityPublicKey:   md.RealityPublicKey,
+						RealityFingerprint: md.RealityFingerprint,
+					},
+				)
+			}
+		}
+	}
+
+	// Create Xray client and run PreUp.
+	service := xray.NewClient("xray", b.HomeDir, b.XrayCfg)
 	if err := service.Init(true); err != nil {
 		return nil, fmt.Errorf("running service init task: %w", err)
 	}
