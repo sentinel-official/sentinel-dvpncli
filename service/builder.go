@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
 
 	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
@@ -45,6 +47,9 @@ func (b *Builder) Build(ctx context.Context) (types.ClientService, error) {
 
 	case types.ServiceTypeAmneziaWG:
 		return b.buildAmneziaWG(ctx)
+
+	case types.ServiceTypeHysteria2:
+		return b.buildHysteria2(ctx)
 
 	case types.ServiceTypeOpenVPN:
 		return nil, fmt.Errorf("unspported service type %q", b.Type)
@@ -240,6 +245,38 @@ func (b *Builder) buildAmneziaWG(ctx context.Context) (types.ClientService, erro
 
 	// Create AmneziaWG client and run PreUp.
 	service := amneziawg.NewClient("amneziawg", b.HomeDir, b.AmneziaWGCfg)
+	if err := service.Init(true); err != nil {
+		return nil, fmt.Errorf("running service init task: %w", err)
+	}
+
+	return service, nil
+}
+
+// buildHysteria2 performs the Hysteria2 handshake and returns an initialized client service.
+func (b *Builder) buildHysteria2(ctx context.Context) (types.ClientService, error) {
+	// Create a handshake request with the Hysteria2 UUID.
+	addReq := &hysteria2.PeerRequest{UUID: b.Hysteria2Cfg.Auth}
+
+	// Perform the handshake with the node.
+	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
+	if err != nil {
+		return nil, fmt.Errorf("performing node handshake: %w", err)
+	}
+
+	// Decode the handshake response.
+	var addResp hysteria2.AddPeerResponse
+	if err := json.Unmarshal(resp.Data, &addResp); err != nil {
+		return nil, fmt.Errorf("unmarshaling add peer response: %w", err)
+	}
+
+	// Apply handshake data to Hysteria2 config.
+	md := addResp.Metadata[0]
+	b.Hysteria2Cfg.ServerAddr = net.JoinHostPort(resp.Addrs[0], strconv.Itoa(int(md.Port)))
+	b.Hysteria2Cfg.TLSPin = md.TLSPin
+	b.Hysteria2Cfg.ObfsPassword = md.ObfsPassword
+
+	// Create Hysteria2 client and run PreUp.
+	service := hysteria2.NewClient("hysteria2", b.HomeDir, b.Hysteria2Cfg)
 	if err := service.Init(true); err != nil {
 		return nil, fmt.Errorf("running service init task: %w", err)
 	}
