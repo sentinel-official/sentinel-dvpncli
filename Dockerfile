@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.26-alpine3.23 AS build
+FROM golang:1.26-alpine3.24 AS build
 
 # Set working directory
 WORKDIR /root
@@ -90,7 +90,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     make --jobs=$(nproc) install
 
 # Runtime stage
-FROM alpine:3.23
+FROM alpine:3.24
 
 # Install runtime dependencies
 RUN apk add --no-cache \
