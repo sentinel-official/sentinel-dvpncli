@@ -8,14 +8,14 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/sentinel-official/sentinel-go-sdk/amneziawg"
-	"github.com/sentinel-official/sentinel-go-sdk/hysteria2"
-	"github.com/sentinel-official/sentinel-go-sdk/node"
-	"github.com/sentinel-official/sentinel-go-sdk/openvpn"
-	"github.com/sentinel-official/sentinel-go-sdk/types"
-	"github.com/sentinel-official/sentinel-go-sdk/v2ray"
-	"github.com/sentinel-official/sentinel-go-sdk/wireguard"
-	"github.com/sentinel-official/sentinel-go-sdk/xray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/node"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/v2ray"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/wireguard"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/xray"
 )
 
 // Builder holds all state required to initialize a client service.
@@ -130,6 +130,7 @@ func (b *Builder) buildV2Ray(ctx context.Context) (types.ClientService, error) {
 						ProxyProtocol:     md.ProxyProtocol.String(),
 						TransportProtocol: md.TransportProtocol.String(),
 						TransportSecurity: md.TransportSecurity.String(),
+						TLSPin:            md.TLSPin,
 					},
 				)
 			}

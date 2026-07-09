@@ -6,8 +6,8 @@ import (
 
 	cosmossdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
-	"github.com/sentinel-official/sentinel-go-sdk/core"
-	"github.com/sentinel-official/sentinel-go-sdk/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core/config"
 	"github.com/sentinel-official/sentinelhub/v12/types"
 	"github.com/spf13/cobra"
 )

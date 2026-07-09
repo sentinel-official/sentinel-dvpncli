@@ -5,8 +5,8 @@ GIT_TAG    := $(shell git describe --tags --always --dirty 2>/dev/null | sed 's/
 
 TAGS      := $(strip netgo)
 LD_FLAGS  := -s -w \
-	-X github.com/sentinel-official/sentinel-go-sdk/version.Commit=$(GIT_COMMIT) \
-	-X github.com/sentinel-official/sentinel-go-sdk/version.Tag=$(GIT_TAG)
+	-X github.com/sentinel-official/sentinel-go-sdk/v2/version.Commit=$(GIT_COMMIT) \
+	-X github.com/sentinel-official/sentinel-go-sdk/v2/version.Tag=$(GIT_TAG)
 
 build_flags = -ldflags="$(LD_FLAGS)" -mod=readonly -tags="$(TAGS)" -trimpath
 
