@@ -6,8 +6,7 @@ require (
 	cosmossdk.io/math v1.5.3
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/cosmos/cosmos-sdk v0.47.17
-	github.com/google/uuid v1.6.0
-	github.com/sentinel-official/sentinel-go-sdk/v2 v2.1.0
+	github.com/sentinel-official/sentinel-go-sdk/v2 v2.1.1-0.20260711125417-784a083d9d76
 	github.com/sentinel-official/sentinelhub/v12 v12.0.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -76,6 +75,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
@@ -133,12 +133,12 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.22.0 // indirect
-	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/term v0.44.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect

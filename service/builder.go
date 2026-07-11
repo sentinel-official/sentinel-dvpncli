@@ -7,9 +7,9 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/amneziawg"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/hysteria2"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/uuid"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/node"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/openvpn"
 	"github.com/sentinel-official/sentinel-go-sdk/v2/types"
@@ -98,8 +98,8 @@ func (b *Builder) buildWireGuard(ctx context.Context) (types.ClientService, erro
 // buildV2Ray performs the V2Ray handshake and returns an initialized client service.
 func (b *Builder) buildV2Ray(ctx context.Context) (types.ClientService, error) {
 	// Create a handshake request with the V2Ray UUID.
-	uuid := b.V2RayCfg.GetID()
-	addReq := &v2ray.PeerRequest{UUID: uuid}
+	id := b.V2RayCfg.GetID()
+	addReq := &v2ray.PeerRequest{UUID: uuid.UUID(id)}
 
 	// Perform the handshake with the node.
 	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
@@ -185,8 +185,8 @@ func (b *Builder) buildOpenVPN(ctx context.Context) (types.ClientService, error)
 // buildXray performs the Xray handshake and returns an initialized client service.
 func (b *Builder) buildXray(ctx context.Context) (types.ClientService, error) {
 	// Create a handshake request with the Xray UUID.
-	uuid := b.XrayCfg.GetID()
-	addReq := &xray.PeerRequest{UUID: uuid}
+	id := b.XrayCfg.GetID()
+	addReq := &xray.PeerRequest{UUID: uuid.UUID(id)}
 
 	// Perform the handshake with the node.
 	resp, err := b.Client.InitHandshake(ctx, b.ID, addReq)
