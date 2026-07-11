@@ -1,0 +1,36 @@
+name: "Release"
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  artifacts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Build and Tag Docker Image
+        run: make build-image
+
+      - name: Extract Binary
+        run: |
+          docker create --name artifacts sentinel-dvpncli:latest
+          docker cp artifacts:/usr/local/bin/dvpncli ./sentinel-dvpncli
+          docker rm artifacts
+
+      - name: Generate SHA256 Checksum
+        run: sha256sum sentinel-dvpncli > ./checksums.txt
+
+      - name: Upload Release Artifacts
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b #v3.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            checksums.txt
+            sentinel-dvpncli

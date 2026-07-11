@@ -3,9 +3,9 @@ package query
 import (
 	"fmt"
 
-	"github.com/sentinel-official/sentinel-go-sdk/core"
-	"github.com/sentinel-official/sentinel-go-sdk/core/config"
-	"github.com/sentinel-official/sentinel-go-sdk/utils"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

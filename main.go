@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sentinel-official/sentinel-go-sdk/app"
-	"github.com/sentinel-official/sentinel-go-sdk/cmd"
-	"github.com/sentinel-official/sentinel-go-sdk/core/config"
-	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
-	"github.com/sentinel-official/sentinel-go-sdk/version"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/app"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/cmd"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/core/config"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/libs/log"
+	"github.com/sentinel-official/sentinel-go-sdk/v2/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
